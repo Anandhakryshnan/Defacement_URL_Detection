@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Defaced URL Detector</title>
+  <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="background">
+        <div id="particles-js">
+          <!-- Graph nodes and branches will be generated here -->
+          <div class="container">
+            <h1 class="heading">Defacement URL Detection</h1>
+            <form id="urlForm" method="POST" class="input-container">
+                <input type="text" id="urlInput" name="url" placeholder="Enter a URL" />
+                <button type="submit">Detect</button>
+            </form>
+            <div id="predictionResult">
+            </div>
+        </div>
+        </div>
+    </div>
+    <footer>
+        
+    </footer>
+    <script>
+        document.getElementById('urlForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const form = e.target;
+            const formData = new FormData(form);
+            const response = await fetch('/analyze', {
+                method: 'POST',
+                body: formData,
+            });
+            const data = await response.json();
+            document.getElementById('predictionResult').innerText = `Prediction: ${data.prediction}`;
+        });
+    </script>
+    <script src="{{ url_for('static', filename='particles.js') }}"></script>
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
