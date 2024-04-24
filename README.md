@@ -44,7 +44,7 @@ python app.py
 - `styles.css`: CSS file for styling the web interface.
 - `particles.js`: JavaScript library for the background particle animation.
 - `app.js`: JavaScript file for handling form submission and displaying prediction results.
-- `random_forest_model.pkl`: Pre-trained Random Forest Classifier model (not included in this repository).
+- `random_forest_model.pkl`: Pre-trained Random Forest Classifier model.
 
 ## Contributing 🤝
 
