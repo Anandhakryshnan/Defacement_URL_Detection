@@ -4,37 +4,89 @@
     <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Defaced URL Detector</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
-    <div class="background">
-        <div id="particles-js">
-          <!-- Graph nodes and branches will be generated here -->
-          <div class="container">
-            <h1 class="heading">Defacement URL Detection</h1>
-            <form id="urlForm" method="POST" class="input-container">
-                <input type="text" id="urlInput" name="url" placeholder="Enter a URL" />
-                <button type="submit">Detect</button>
-            </form>
-            <div id="predictionResult">
+    <div id="particles-js"></div>
+    <div class="container">
+      <div class="glass-panel">
+        <h1 class="heading">Defacement URL Detection</h1>
+        <p class="subtitle">System Ready. Awaiting Target URL for Threat Analysis...</p>
+        <form id="urlForm" method="POST" class="input-container">
+            <div class="input-wrapper">
+                <span class="prompt-symbol">></span>
+                <input type="text" id="urlInput" name="url" placeholder="https://example.com" required autocomplete="off" />
             </div>
+            <button type="submit" id="submitBtn">
+                <span class="btn-text">Detect</span>
+                <span class="loader hidden"></span>
+            </button>
+        </form>
+        <div id="predictionResult" class="hidden">
+            <div id="predictionText"></div>
+            <button id="resetBtn" type="button" class="btn-outline hidden">Analyze New Target</button>
         </div>
-        </div>
+      </div>
     </div>
     <footer>
-        
     </footer>
     <script>
         document.getElementById('urlForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const form = e.target;
             const formData = new FormData(form);
-            const response = await fetch('/analyze', {
-                method: 'POST',
-                body: formData,
-            });
-            const data = await response.json();
-            document.getElementById('predictionResult').innerText = `Prediction: ${data.prediction}`;
+            const btn = document.getElementById('submitBtn');
+            const btnText = btn.querySelector('.btn-text');
+            const loader = btn.querySelector('.loader');
+            const resultDiv = document.getElementById('predictionResult');
+            const resultText = document.getElementById('predictionText');
+            const resetBtn = document.getElementById('resetBtn');
+            
+            // Show loading state
+            btn.disabled = true;
+            btnText.classList.add('hidden');
+            loader.classList.remove('hidden');
+            resultDiv.classList.add('hidden');
+            resultDiv.classList.remove('success', 'danger');
+
+            try {
+                const response = await fetch('/analyze', {
+                    method: 'POST',
+                    body: formData,
+                });
+                const data = await response.json();
+                
+                resultText.innerText = `[Result]: ${data.prediction}`;
+                
+                // Transition UI state
+                form.classList.add('hidden');
+                resultDiv.classList.remove('hidden');
+                resetBtn.classList.remove('hidden');
+                
+                if (data.prediction.toLowerCase().includes('defacement') || data.prediction.toLowerCase().includes('phishing') || data.prediction.toLowerCase().includes('malware')) {
+                    resultDiv.classList.add('danger');
+                } else {
+                    resultDiv.classList.add('success');
+                }
+            } catch (err) {
+                resultText.innerText = '[Error]: Analysis failed.';
+                form.classList.add('hidden');
+                resultDiv.classList.remove('hidden');
+                resultDiv.classList.add('danger');
+                resetBtn.classList.remove('hidden');
+            } finally {
+                // Restore button state
+                btn.disabled = false;
+                btnText.classList.remove('hidden');
+                loader.classList.add('hidden');
+            }
+        });
+
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            document.getElementById('urlForm').classList.remove('hidden');
+            document.getElementById('predictionResult').classList.add('hidden');
+            document.getElementById('urlInput').value = '';
         });
     </script>
     <script src="{{ url_for('static', filename='particles.js') }}"></script>

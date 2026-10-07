@@ -258,20 +258,29 @@ def home():
     return render_template('index.html')
 
 data = pd.read_csv('enhanced_feature_set.csv')
+print("Training model on startup...")
+model = RandomForestClassifier()
+X = data.drop(["class"], axis=1)
+y = data["class"]
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+model.fit(X_train, y_train)
+print("Model trained successfully!")
 
 @app.route('/analyze', methods=['POST'])
 def predict():
-    model = RandomForestClassifier()
-    X = data.drop(["class"], axis=1)
-    y = data["class"]
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-    model.fit(X_train, y_train)
     if 'url' in request.form:
-        url = request.form['url']
+        url = request.form['url'].strip()
+        
+        # Ensure the URL has a scheme so urlparse works correctly
+        if not url.startswith('http://') and not url.startswith('https://'):
+            url = 'http://' + url
+            
         print(f"Received URL: {url}")
         # Extract features from the URL
-        features = test_it(url)
+        try:
+            features = test_it(url)
+        except Exception as e:
+            return jsonify({'error': str(e)}), 400
         # Make prediction using the loaded model
         print(features)
         xnew = [features]
