@@ -7,8 +7,18 @@ import string
 import math
 import pickle
 from sklearn.ensemble import RandomForestClassifier
+import sqlite3
 
 app = Flask(__name__, template_folder='templates')
+
+def init_db():
+    with sqlite3.connect('scans.db') as conn:
+        c = conn.cursor()
+        c.execute('''CREATE TABLE IF NOT EXISTS scans 
+                     (id INTEGER PRIMARY KEY, url TEXT, prediction TEXT, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)''')
+        conn.commit()
+
+init_db()
 
 # Load the machine learning model
 # data = pickle.load(open('random_forest_model.pkl', 'rb'))
@@ -281,17 +291,61 @@ def predict():
             features = test_it(url)
         except Exception as e:
             return jsonify({'error': str(e)}), 400
-        # Make prediction using the loaded model
-        print(features)
+            
         xnew = [features]
         ynew = model.predict(xnew)
+        prediction = ynew[0]
+        
+        # Generate Explainable AI Report (User-Friendly)
+        report = []
+        if prediction == 'defacement' or prediction != 'benign':
+            if features[1] > 75: 
+                report.append(f"Unusually Long Link: The web address has {features[1]} characters. Hackers often use extremely long links to hide dangerous content at the very end.")
+            if features[5] > 3: 
+                report.append(f"Too Many Dots: We found {features[5]} dots in the link. This is a common trick used to create fake website names that look like real ones.")
+            if features[6] > 20: 
+                report.append(f"Suspicious Numbers: There are {features[6]} numbers hidden in the link. This usually means an automated script or tracker is trying to sneak through.")
+            if features[7] > 40: 
+                report.append(f"Hidden Folders: A section of the link is abnormally long ({features[7]} characters). Normal websites rarely use folders this long.")
+            if features[11] > 4.5: 
+                report.append(f"Scrambled Text: The link looks highly randomized or scrambled. Hackers do this to bypass security filters and hide their true destination.")
+            if features[12] > 3.5: 
+                report.append(f"Fake Domain Name: The main website name looks like random gibberish. This is a big red flag that the site was generated automatically by a bot.")
+            if features[16] > 3: 
+                report.append(f"Too Many Commands: We found {features[16]} '=' signs. This means the link is trying to send a lot of hidden commands to the website, which is a common attack method.")
+            if features[17] > 0: 
+                report.append(f"Fake Destination Trick: The link contains an '@' symbol. This is an old trick used to lie to you about what website you are actually visiting.")
+            if features[9] > 5:
+                report.append(f"Suspicious Symbols: There are a lot of symbols ({features[9]}) in the web address. Attackers use these to try and break into locked parts of a server.")
+                
+            if len(report) == 0: 
+                report.append("Hidden Threat: Our AI model analyzed the overall structure of the link and found hidden patterns commonly used by hackers.")
+        else:
+            report.append("Safe Link: The length, structure, and symbols in this web address all look completely normal and safe.")
+            
+        # Log to Database
+        try:
+            with sqlite3.connect('scans.db') as conn:
+                c = conn.cursor()
+                c.execute("INSERT INTO scans (url, prediction) VALUES (?, ?)", (url, prediction))
+                conn.commit()
+        except Exception as e:
+            print("DB Error:", e)
 
-        print (ynew)
-        # prediction = model.predict([features])  # Remove [0] indexing
-        # Return the URL and prediction in the JSON response
-        return jsonify({'url': url, 'prediction': ynew[0]})  # Adjust indexing here as well
+        return jsonify({'url': url, 'prediction': prediction, 'report': report})
     else:
         return jsonify({'error': 'URL key not found in form data'})
+
+@app.route('/history', methods=['GET'])
+def history():
+    try:
+        with sqlite3.connect('scans.db') as conn:
+            c = conn.cursor()
+            c.execute("SELECT url, prediction, timestamp FROM scans ORDER BY id DESC LIMIT 10")
+            rows = c.fetchall()
+            return jsonify([{'url': r[0], 'prediction': r[1], 'timestamp': r[2]} for r in rows])
+    except Exception as e:
+        return jsonify([])
     # return "hallo"
 
 if __name__ == '__main__':

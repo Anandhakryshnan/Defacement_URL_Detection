@@ -25,13 +25,44 @@
         </form>
         <div id="predictionResult" class="hidden">
             <div id="predictionText"></div>
+            <ul id="reportList" class="report-list"></ul>
             <button id="resetBtn" type="button" class="btn-outline hidden">Analyze New Target</button>
+        </div>
+        
+        <div class="threat-feed">
+            <h3>[ LIVE THREAT FEED ]</h3>
+            <ul id="historyList"></ul>
         </div>
       </div>
     </div>
     <footer>
     </footer>
     <script>
+        // Fetch and render Threat History Feed
+        async function fetchHistory() {
+            try {
+                const res = await fetch('/history');
+                const data = await res.json();
+                const list = document.getElementById('historyList');
+                list.innerHTML = '';
+                data.forEach(item => {
+                    const li = document.createElement('li');
+                    const colorClass = item.prediction.toLowerCase().includes('defacement') ? 'feed-danger' : 'feed-success';
+                    // Format timestamp (assume UTC, convert to local)
+                    let timeStr = new Date(item.timestamp + 'Z').toLocaleTimeString();
+                    if(timeStr === 'Invalid Date') timeStr = item.timestamp;
+                    li.innerHTML = `<span class="time">[${timeStr}]</span> <span class="${colorClass}">${item.prediction.toUpperCase()}</span>: ${item.url}`;
+                    list.appendChild(li);
+                });
+            } catch(e) {
+                console.error("Failed to fetch history", e);
+            }
+        }
+        
+        // Initial fetch and auto-refresh every 5 seconds
+        fetchHistory();
+        setInterval(fetchHistory, 5000);
+
         document.getElementById('urlForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const form = e.target;
@@ -41,6 +72,7 @@
             const loader = btn.querySelector('.loader');
             const resultDiv = document.getElementById('predictionResult');
             const resultText = document.getElementById('predictionText');
+            const reportList = document.getElementById('reportList');
             const resetBtn = document.getElementById('resetBtn');
             
             // Show loading state
@@ -49,6 +81,7 @@
             loader.classList.remove('hidden');
             resultDiv.classList.add('hidden');
             resultDiv.classList.remove('success', 'danger');
+            reportList.innerHTML = '';
 
             try {
                 const response = await fetch('/analyze', {
@@ -57,7 +90,18 @@
                 });
                 const data = await response.json();
                 
+                if(data.error) { throw new Error(data.error); }
+                
                 resultText.innerText = `[Result]: ${data.prediction}`;
+                
+                // Populate Explainable AI Report
+                if(data.report) {
+                    data.report.forEach(msg => {
+                        const li = document.createElement('li');
+                        li.innerText = '> ' + msg;
+                        reportList.appendChild(li);
+                    });
+                }
                 
                 // Transition UI state
                 form.classList.add('hidden');
@@ -69,8 +113,12 @@
                 } else {
                     resultDiv.classList.add('success');
                 }
+                
+                // Update feed immediately
+                fetchHistory();
+                
             } catch (err) {
-                resultText.innerText = '[Error]: Analysis failed.';
+                resultText.innerText = '[Error]: ' + err.message;
                 form.classList.add('hidden');
                 resultDiv.classList.remove('hidden');
                 resultDiv.classList.add('danger');
@@ -87,6 +135,7 @@
             document.getElementById('urlForm').classList.remove('hidden');
             document.getElementById('predictionResult').classList.add('hidden');
             document.getElementById('urlInput').value = '';
+            document.getElementById('reportList').innerHTML = '';
         });
     </script>
     <script src="{{ url_for('static', filename='particles.js') }}"></script>

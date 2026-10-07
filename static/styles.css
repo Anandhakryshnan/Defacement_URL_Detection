@@ -159,6 +159,27 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes fadeIn { 0% { opacity: 0; } 100% { opacity: 1; } }
 
+/* Explainable AI Report */
+.report-list {
+  list-style: none; padding: 0; margin: 10px 0; font-size: 14px; text-align: left;
+  width: 100%; border-top: 1px dashed rgba(255,255,255,0.2); padding-top: 15px;
+}
+.report-list li { margin-bottom: 5px; color: var(--text-main); font-family: 'Space Mono', monospace; }
+
+/* Threat Feed */
+.threat-feed {
+  margin-top: 30px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px;
+  text-align: left; width: 100%;
+}
+.threat-feed h3 { font-size: 14px; color: var(--detect-btn); margin-bottom: 15px; letter-spacing: 2px; }
+.threat-feed ul { list-style: none; padding: 0; margin: 0; max-height: 120px; overflow-y: auto; }
+.threat-feed ul::-webkit-scrollbar { width: 5px; }
+.threat-feed ul::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); }
+.threat-feed li { font-size: 12px; margin-bottom: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.time { color: var(--text-muted); margin-right: 10px; }
+.feed-danger { color: var(--danger); font-weight: bold; margin-right: 10px; text-transform: uppercase; }
+.feed-success { color: var(--success); font-weight: bold; margin-right: 10px; text-transform: uppercase; }
+
 /* Responsive adjustments for mobile */
 @media (max-width: 640px) {
   .glass-panel {
